@@ -1,0 +1,230 @@
+================================================================================
+GUIA I INSTRUCCIONS DE DESENVOLUPAMENT: PROJECTE DICTADOS_BERTA
+================================================================================
+
+Aquest document detalla l'arquitectura, el funcionament dels jocs educatius en HTML,
+el format de cadascun dels fitxers del projecte i les pautes per a crear nous dictats
+en futures sessions o per part d'altres assistents d'IA.
+
+--------------------------------------------------------------------------------
+1. DESCRIPCIÓ GENERAL DEL PROJECTE
+--------------------------------------------------------------------------------
+El projecte "Dictados_Berta" és una eina educativa interactiva dissenyada perquè
+una nena (Berta) aprengui i practiqui l'ortografia catalana basada en dictats escolars.
+
+L'aplicació es presenta com una aplicació web autònoma (HTML5, CSS3, JavaScript modern)
+que pot funcionar tant en local directament des del navegador com connectada a la
+carpeta local mitjançant la File System Access API per llegir fitxers en temps real
+i desar les estadístiques de forma transparent.
+
+L'aplicació conté dos modes de joc principals i un mòdul d'estadístiques:
+  * JOC 1 (Triar la paraula correcta): Joc de targetes ràpid tipus test (10 rondes).
+  * JOC 2 (Omplir els buits del dictat): El text complet del dictat amb els punts
+    crítics o lletres de major dificultat amagats en caixes de text.
+  * ESTADÍSTIQUES: Resum de partides, percentatges d'encert, temps i errors comuns.
+
+--------------------------------------------------------------------------------
+2. ESTRUCTURA I FORMAT DELS FITXERS
+--------------------------------------------------------------------------------
+Cada sessió de dictat segueix una nomenclatura basada en la data: `DD_MM_YYYY`
+(per exemple: `31_10_2026`).
+
+Els fitxers que conformen un dictat són:
+
+--------------------------------------------------------------------------------
+A) `dictado_DD_MM_YYYY.txt`
+Format: Text pla (UTF-8).
+Contingut: El text complet i narratiu del dictat en català, amb la seva puntuació
+i accents correctes.
+
+Exemple:
+L'altre dia vam anar d'excursió a la muntanya. Les cases eren fetes de pedra i les
+teulades de pissarra. L'Andreu, un boletaire, ensenyava les fulles vermelles dels
+castanyers. Al bosc també hi havia moltes pinyes i bolets. Ho vam passar molt bé.
+Ja estem impacients per fer la propera excursió.
+
+--------------------------------------------------------------------------------
+B) `paraules_dictado_DD_MM_YYYY.csv`
+Format: CSV separat per comes (UTF-8).
+Finalitat: Alimenta el JOC 1 (targetes).
+Capçalera obligatòria:
+  paraula_correcta,variant_1,variant_2,variant_3
+
+Regles estrictes:
+  1. Totes les paraules de la columna 1 (`paraula_correcta`) HAN D'APARÈIXER
+     necessàriament al text de `dictado_DD_MM_YYYY.txt`.
+  2. Les columnes `variant_1`, `variant_2` i `variant_3` són distraccions
+     ortogràfiques plausibles (errors típics de mainada: s/ss/c/ç, b/v, ny/ñ/ni,
+     ll/l, a/e neutra, etc.).
+
+Exemple:
+  paraula_correcta,variant_1,variant_2,variant_3
+  excursió,excurció,excursio,excurssió
+  muntanya,montanya,muntania,muntañya
+  pissarra,pisarra,pissara,pizarra
+  havia,habia,avia,havie
+
+--------------------------------------------------------------------------------
+C) `paraules_blank_dictado_DD_MM_YYYY.csv`
+Format: CSV separat per comes (UTF-8).
+Finalitat: Alimenta el JOC 2 (omplir els buits del dictat).
+Capçalera obligatòria:
+  paraula,paraula_amb_buits
+
+Regles estrictes:
+  1. La columna `paraula` és la forma bàsica de la paraula tal com apareix al dictat.
+  2. La columna `paraula_amb_buits` conté la mateixa paraula marcant entre claudàtors
+     quadrats `[...]` la lletra o dígraf que representa el repte ortogràfic.
+  3. No s'amaguen lletres aleatòries, només la dificultat pedagògica clau.
+  4. L'HTML substituirà automàticament les lletres dins de `[...]` per caixes d'escriptura.
+
+Exemples de reptes ortogràfics en català:
+  - Doble essa: pissarra -> pi[ss]arra / passar -> pa[ss]ar
+  - Dígraf ny: muntanya -> munta[ny]a / castanyers -> casta[ny]ers
+  - Dígraf ll: fulles -> fu[ll]es / vermelles -> verme[ll]es
+  - Grafies b/v: havia -> ha[v]ia
+  - Vocal neutra (a/e): boletaire -> bol[e]taire / pedra -> p[e]dra
+  - Oclusives finals: bolets -> bole[t]s / bosc -> bos[c]
+  - Terminacions complexes: impacients -> impacien[ts]
+
+Exemple de contingut CSV:
+  paraula,paraula_amb_buits
+  excursió,excur[s]ió
+  muntanya,munta[ny]a
+  pedra,p[e]dra
+  pissarra,pi[ss]arra
+
+--------------------------------------------------------------------------------
+D) `juego_dictado_DD_MM_YYYY.html`
+Format: Document únic HTML5 / CSS3 / JavaScript pur (sense dependències externes
+obligatòries, utilitza Google Fonts per estètica Nunito).
+
+Components principals del fitxer:
+  1. Estils CSS:
+     - Disseny infantil, clar i accessible amb paleta càlida.
+     - Full de llibreta `#game2-screen` amb amplada especial de 1020px (+50% més ample)
+       perquè el text del dictat respiri còmodament.
+     - Tipografia de dictat ampliada un +20% (`font-size: 1.65rem`) per a una lectura
+       fàcil per part de nens.
+  2. Sistema de Dades Híbrid (Doble càrrega):
+     - Dades per defecte (fallback) codificades directament al JavaScript
+       (`DICTATION_TEXT`, `BLANK_WORDS_MAP`, `ALL_WORDS`) perquè el joc funcioni
+       immediatament encara que s'obri fent doble clic (protocol `file://`).
+     - Càrrega dinàmica en temps real: Funcions `loadGame1WordsFromCSV()`,
+       `loadBlankWordsFromCSV()` i `loadDictationTextFile()`. Si l'usuari ha vinculat
+       la carpeta o s'executa en servidor local, el fitxer llegeix els `.csv` i `.txt`
+       directament del disc. Això permet que l'usuari afegeixi paraules als fitxers
+       i es vegin reflectides a l'instant en obrir el joc o en tornar a jugar.
+  3. File System Access API & IndexedDB:
+     - Guarda el DirectoryHandle a IndexedDB (`dictados_berta_db`, store `handles`).
+     - Desa silenciosament les partides a `estadisticas_dictado_DD_MM_YYYY.json`
+       a la mateixa carpeta sense obrir diàlegs molestos de descàrrega.
+
+--------------------------------------------------------------------------------
+E) `estadisticas_dictado_DD_MM_YYYY.json`
+Format: JSON (UTF-8).
+Creat automàticament pel joc quan es finalitza una partida.
+Estructura:
+  {
+    "dictado": "31_10_2026",
+    "partidas": [
+      {
+        "fecha": "2026-10-31T15:30:00.000Z",
+        "juego": "Joc 1 - Targetes",
+        "puntuacion": 10,
+        "total": 10,
+        "porcentaje": 100,
+        "tiempo_segundos": 42,
+        "errores": []
+      }
+    ]
+  }
+
+--------------------------------------------------------------------------------
+3. LÒGICA I REGLAMENTACIÓ DELS JOCS
+--------------------------------------------------------------------------------
+
+JOC 1: TARGETES ORTOGRÀFIQUES
+  1. Selecciona 10 paraules a l'atzar de la llista (extreta de `paraules_dictado_...csv`).
+  2. Per a cada paraula mostra 3 opcions: la correcta i 2 variants incorrectes
+     desordenades aleatòriament.
+  3. L'alumne fa clic a la targeta que considera correcta.
+  4. Resposta immediata:
+     - Correcte: Marc verd, animació d'èxit, so visual d'encert (+1 punt).
+     - Incorrecte: Marc vermell amb vibració; la targeta correcta es ressalta
+       perquè l'alumne vegi la solució abans de passar a la següent.
+  5. En finalitzar les 10 rondes es mostra la pantalla de resultats amb estrelles
+     i es desen les dades a les estadístiques.
+
+JOC 2: TEXT AMB BUITS DEL DICTAT
+  1. L'algoritme agafa el text íntegre de `dictado_...txt`.
+  2. Per a cada paraula present a `paraules_blank_dictado_...csv`, cerca totes
+     les seves aparicions al text (respectant majúscules inicials si n'hi ha).
+  3. Substitueix exactament el fragment entre claudàtors `[...]` per un element `<input>`:
+     - L'amplada de l'input s'ajusta automàticament a la llargada del fragment
+       (`length * 1.5 + 0.8 ch`).
+     - S'assigna un atribut `data-expected` amb la solució en minúscules.
+  4. Interacció per teclat del nen:
+     - Quan el nen escriu el nombre de caràcters esperat, el cursor salta
+       automàticament al següent buit (`auto-advance`).
+     - La tecla 'Backspace' o retrocés permet retrocedir al buit anterior si el camp està buit.
+     - La tecla 'Enter' o la fletxa dreta permet moure's entre buits.
+  5. Sense pistes:
+     - No s'ofereix cap llista de caràcters ni tecles especials flotants que puguin
+       donar pistes fàcils. El text s'ha d'omplir recordant les regles d'ortografia.
+  6. Validació:
+     - En prémer "Comprovar dictat":
+       * Els camps correctes es marquen en verd (`is-correct`).
+       * Els camps incorrectes o buits es marquen en vermell (`is-wrong`).
+       * IMPORTANT: NO se li dona la resposta feta als camps fallats; simplement
+         es marquen en vermell perquè la Berta pugui corregir-los i tornar a provar.
+     - Si tot és correcte: pluja de confeti, missatge de felicitació i desat
+       d'estadístiques.
+
+--------------------------------------------------------------------------------
+4. COM CREAR UN NOU DICTAT EN EL FUTUR (PAS A PAS)
+--------------------------------------------------------------------------------
+Quan calgui afegir un nou dictat per a una nova data (ex: `07_11_2026`):
+
+1. Crear el fitxer de text:
+   - Crear `dictado_07_11_2026.txt` amb la lectura en català.
+
+2. Identificar els reptes ortogràfics i crear els CSV:
+   - Crear `paraules_blank_dictado_07_11_2026.csv`:
+     Triar les paraules més compromeses per a la mainada i aïllar la dificultat
+     entre claudàtors:
+       paraula,paraula_amb_buits
+       excursió,excur[s]ió
+       col·legi,co[l·l]egi
+       fletxa,fle[tx]a
+       viatge,[v]iatge
+   - Crear `paraules_dictado_07_11_2026.csv`:
+     Generar 3 variants incorrectes plausibles per a cadascuna d'aquestes paraules:
+       paraula_correcta,variant_1,variant_2,variant_3
+       col·legi,colegi,col-legi,collegi
+       fletxa,fletja,flecha,fledxa
+
+3. Crear o duplicar l'HTML:
+   - Copiar `juego_dictado_31_10_2026.html` cap a `juego_dictado_07_11_2026.html`.
+   - Dins del nou HTML:
+     a) Canviar el títol visible de la capçalera (data del dictat).
+     b) Actualitzar els noms dels fitxers a les funcions de càrrega:
+        - `dictado_07_11_2026.txt`
+        - `paraules_blank_dictado_07_11_2026.csv`
+        - `paraules_dictado_07_11_2026.csv`
+        - `estadisticas_dictado_07_11_2026.json`
+     c) Actualitzar les constants de seguretat (fallback) `DICTATION_TEXT`,
+        `BLANK_WORDS_MAP` i `ALL_WORDS` amb els nous valors per si el navegador
+        s'obre sense permisos d'accés a fitxers.
+
+--------------------------------------------------------------------------------
+5. MODIFICACIONS MANUALS DE PARAULES PER L'USUARI
+--------------------------------------------------------------------------------
+L'aplicació està preparada perquè l'usuari pugui afegir noves paraules directament
+als fitxers `.csv` amb un bloc de notes o editor de text:
+- Si s'afegeix una paraula a `paraules_blank_dictado_...csv`, apareixerà
+  automàticament com a buit al Joc 2 la propera vegada que es recarregui la pàgina
+  o s'entri al joc (sempre que la paraula formi part del text del dictat).
+- Si s'afegeix una paraula a `paraules_dictado_...csv`, s'afegirà a la baralla de
+  targetes del Joc 1 en la següent partida.
+================================================================================

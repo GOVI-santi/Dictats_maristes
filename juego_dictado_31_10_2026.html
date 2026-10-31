@@ -1,0 +1,1235 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Jocs de Dictats 🎒</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap');
+
+    :root {
+      --bg: #fdf6e3;
+      --primary: #ff7f50;
+      --primary-dark: #e0603a;
+      --accent: #6ec6f5;
+      --accent-dark: #3aa8e0;
+      --correct: #4caf50;
+      --correct-bg: #e8f5e9;
+      --wrong: #e53935;
+      --wrong-bg: #ffebee;
+      --card-bg: #ffffff;
+      --shadow: 0 6px 20px rgba(0,0,0,0.12);
+      --radius: 20px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Nunito', 'Comic Sans MS', cursive, sans-serif;
+      background: var(--bg);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    h1 {
+      font-size: 2.3rem;
+      font-weight: 900;
+      color: var(--primary);
+      text-align: center;
+      margin-bottom: 6px;
+      text-shadow: 2px 2px 0 #ffe0b2;
+    }
+
+    .subtitle {
+      font-size: 1.1rem;
+      color: #666;
+      text-align: center;
+      margin-bottom: 24px;
+    }
+
+    .screen {
+      display: none;
+      width: 100%;
+      max-width: 680px;
+      transition: all 0.3s ease;
+    }
+    .screen.active {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    /* El rectangle del Joc 2 és un 50% més ample (680px * 1.5 = 1020px) */
+    #game2-screen {
+      max-width: 1020px;
+      width: 96%;
+    }
+
+    /* ── MENÚ PRINCIPAL ── */
+    #menu-screen .mascot {
+      font-size: 4.8rem;
+      margin-bottom: 10px;
+      animation: bounce 2s infinite ease-in-out;
+    }
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-8px); }
+    }
+
+    .menu-cards {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      width: 100%;
+      margin-top: 10px;
+    }
+
+    .menu-card {
+      background: white;
+      border: 3px solid #ffcc80;
+      border-radius: var(--radius);
+      padding: 22px 26px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      box-shadow: var(--shadow);
+      transition: all 0.2s ease;
+      text-align: left;
+    }
+    .menu-card:hover {
+      transform: translateY(-3px) scale(1.02);
+      border-color: var(--primary);
+      box-shadow: 0 10px 25px rgba(255, 127, 80, 0.2);
+    }
+    .menu-card .icon { font-size: 3rem; flex-shrink: 0; }
+    .menu-card .info h3 { font-size: 1.4rem; color: var(--primary-dark); font-weight: 900; margin-bottom: 4px; }
+    .menu-card .info p { font-size: 1rem; color: #666; font-weight: 700; line-height: 1.35; }
+
+    .folder-status-box {
+      margin-top: 18px;
+      background: #fff;
+      border: 2px dashed #b0bec5;
+      border-radius: 14px;
+      padding: 10px 18px;
+      font-size: 0.9rem;
+      color: #546e7a;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      max-width: 95%;
+      text-align: center;
+    }
+    .folder-status-box:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+      background: #fffdf9;
+    }
+    .folder-status-box.linked {
+      border: 2px solid #a5d6a7;
+      background: #e8f5e9;
+      color: #2e7d32;
+      cursor: default;
+    }
+
+    /* ── BOTONS ── */
+    .btn {
+      padding: 14px 34px;
+      font-family: inherit;
+      font-size: 1.15rem;
+      font-weight: 900;
+      border: none;
+      border-radius: 50px;
+      cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.15s, background 0.2s;
+      box-shadow: 0 5px 0 rgba(0,0,0,0.18);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .btn:active { transform: translateY(3px); box-shadow: 0 2px 0 rgba(0,0,0,0.18); }
+
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-primary:hover { background: var(--primary-dark); }
+
+    .btn-accent { background: var(--accent); color: white; }
+    .btn-accent:hover { background: var(--accent-dark); }
+
+    .btn-secondary { background: #90a4ae; color: white; }
+    .btn-secondary:hover { background: #78909c; }
+
+    .btn-success { background: #43a047; color: white; }
+    .btn-success:hover { background: #2e7d32; }
+
+    .btn-stats {
+      background: var(--accent); color: white; margin-top: 14px;
+      font-size: 1rem; padding: 12px 30px;
+    }
+    .btn-stats:hover { background: var(--accent-dark); }
+
+    .btn-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      justify-content: center;
+      margin-top: 20px;
+      width: 100%;
+    }
+
+    /* ── JOC 1: TARGETES ── */
+    .progress-bar-wrap {
+      width: 100%; background: #e0e0e0; border-radius: 50px;
+      height: 14px; margin-bottom: 16px; overflow: hidden;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--primary), #ffb347);
+      border-radius: 50px; transition: width 0.4s ease;
+    }
+
+    .round-label { font-size: 1.05rem; color: #888; margin-bottom: 16px; font-weight: 700; }
+    .question-text { font-size: 1.3rem; color: #444; margin-bottom: 22px; text-align: center; font-weight: 800; }
+
+    .cards { display: flex; flex-direction: column; gap: 14px; width: 100%; }
+
+    .card {
+      background: var(--card-bg);
+      border: 3px solid #e0e0e0;
+      border-radius: var(--radius);
+      padding: 20px 24px;
+      font-size: 1.6rem;
+      font-weight: 900;
+      text-align: center;
+      cursor: pointer;
+      box-shadow: var(--shadow);
+      transition: transform 0.15s, border-color 0.3s, background 0.3s;
+      user-select: none;
+    }
+    .card:hover:not(.disabled) { transform: scale(1.03); border-color: var(--accent); }
+    .card.disabled { cursor: default; pointer-events: none; }
+    .card.correct  { background: var(--correct-bg); border-color: var(--correct); color: var(--correct); }
+    .card.wrong    { background: var(--wrong-bg);   border-color: var(--wrong);   color: var(--wrong);   }
+
+    .btn-next {
+      background: var(--accent); color: white; margin-top: 22px;
+      opacity: 0.4; pointer-events: none;
+      transition: opacity 0.3s, transform 0.15s, box-shadow 0.15s;
+    }
+    .btn-next.enabled { opacity: 1; pointer-events: all; }
+    .btn-next.enabled:hover { background: var(--accent-dark); }
+
+    /* ── JOC 2: DICTAT COMPLET (AMPLIAT UN 50% I LLETRA 20% MÉS GRAN SENSE PISTES) ── */
+    .dictat-container {
+      width: 100%;
+      background: white;
+      border: 3.5px solid #ffcc80;
+      border-radius: 28px;
+      padding: 36px 42px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+      margin-bottom: 18px;
+      font-size: 1.65rem;
+      line-height: 3.6rem;
+      color: #2c3e50;
+      font-weight: 700;
+      text-align: justify;
+    }
+
+    .word-token {
+      display: inline-flex;
+      align-items: center;
+      white-space: nowrap;
+      margin: 0 3px;
+    }
+
+    .char-static {
+      font-size: 1.65rem;
+      font-weight: 700;
+      color: #2c3e50;
+    }
+
+    .blank-input {
+      height: 48px;
+      border: 3px solid #ffb347;
+      border-radius: 10px;
+      background: #fffdf9;
+      text-align: center;
+      font-family: inherit;
+      font-size: 1.65rem;
+      font-weight: 900;
+      color: #2c3e50;
+      margin: 0 3px;
+      outline: none;
+      transition: all 0.18s ease;
+      vertical-align: middle;
+      text-transform: lowercase;
+      box-shadow: inset 0 2px 4px rgba(0,0,0,0.06);
+    }
+    .blank-input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 4px rgba(255, 127, 80, 0.25);
+      background: #ffffff;
+      transform: scale(1.06);
+    }
+    .blank-input.correct {
+      background: var(--correct-bg) !important;
+      border-color: var(--correct) !important;
+      color: #2e7d32 !important;
+      font-weight: 900;
+    }
+    .blank-input.wrong {
+      background: var(--wrong-bg) !important;
+      border-color: var(--wrong) !important;
+      color: #c62828 !important;
+      font-weight: 900;
+    }
+
+    .source-file-badge {
+      font-size: 0.85rem;
+      color: #78909c;
+      background: #eceff1;
+      border-radius: 50px;
+      padding: 4px 14px;
+      margin-bottom: 14px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 700;
+    }
+
+    .game2-summary-box {
+      display: none;
+      width: 100%;
+      background: #e8f5e9;
+      border: 3px solid #a5d6a7;
+      border-radius: 20px;
+      padding: 20px 26px;
+      margin-top: 16px;
+      text-align: center;
+    }
+    .game2-summary-box h3 { font-size: 1.45rem; color: #2e7d32; font-weight: 900; margin-bottom: 6px; }
+    .game2-summary-box p { font-size: 1.15rem; color: #388e3c; font-weight: 700; line-height: 1.5; }
+
+    /* ── RESULTATS I ESTADÍSTIQUES ── */
+    .big-emoji { font-size: 5rem; margin-bottom: 8px; }
+
+    .score-circle {
+      width: 130px; height: 130px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--primary), #ffb347);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      color: white; font-weight: 900; font-size: 2.3rem;
+      box-shadow: var(--shadow); margin: 12px 0 16px;
+    }
+    .score-circle span { font-size: 0.85rem; font-weight: 700; opacity: 0.88; }
+
+    .wrong-list {
+      width: 100%; background: #fff3e0; border-radius: var(--radius);
+      padding: 16px 22px; margin-bottom: 16px; border: 2px solid #ffcc80;
+    }
+    .wrong-list h3 { font-size: 1.05rem; color: #e65100; margin-bottom: 10px; font-weight: 900; }
+    .wrong-list ul { list-style: none; padding: 0; }
+    .wrong-list li { font-size: 1.05rem; padding: 4px 0; color: #bf360c; font-weight: 700; }
+    .wrong-list li::before { content: "❌ "; }
+
+    #save-toast {
+      display: none;
+      background: #388e3c; color: white;
+      border-radius: 50px; padding: 10px 24px;
+      font-size: 0.95rem; font-weight: 800;
+      margin-bottom: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      animation: fadeIn 0.3s ease;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    #stats-screen h2 { font-size: 1.6rem; color: var(--primary); margin-bottom: 14px; text-align: center; }
+    .stats-table-wrap { width: 100%; overflow-x: auto; margin-bottom: 16px; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.95rem; background: white; border-radius: 14px; overflow: hidden; box-shadow: var(--shadow); }
+    th { background: var(--primary); color: white; padding: 12px 14px; text-align: left; font-weight: 900; }
+    td { padding: 10px 14px; border-bottom: 1px solid #f0f0f0; vertical-align: top; }
+    tr:last-child td { border-bottom: none; }
+    tr:nth-child(even) td { background: #fafafa; }
+
+    .badge { display: inline-block; background: var(--correct); color: white; border-radius: 50px; padding: 2px 10px; font-size: 0.85rem; font-weight: 800; }
+    .badge.bad { background: var(--wrong); }
+    .badge.mid { background: #ff9800; }
+    .badge-game { display: inline-block; background: #7c4dff; color: white; border-radius: 50px; padding: 2px 8px; font-size: 0.75rem; font-weight: 800; margin-bottom: 3px; }
+
+    .no-stats { color: #888; font-size: 1.05rem; text-align: center; width: 100%; padding: 30px 0; font-weight: 700; }
+
+    /* ── CONFETTI ── */
+    .confetti-wrap { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 999; overflow: hidden; }
+    .confetto {
+      position: absolute; width: 10px; height: 10px; border-radius: 50%;
+      animation: fall linear forwards;
+    }
+    @keyframes fall {
+      0%   { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+      100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════ -->
+<!--  MENÚ PRINCIPAL                             -->
+<!-- ═══════════════════════════════════════════ -->
+<div id="menu-screen" class="screen active">
+  <div class="mascot">🎒</div>
+  <h1>Jocs de Dictats</h1>
+  <p class="subtitle">Practica el dictat de l'excursió a la muntanya!</p>
+
+  <div class="menu-cards">
+    <div class="menu-card" onclick="startWordCardGame()">
+      <div class="icon">🃏</div>
+      <div class="info">
+        <h3>Joc 1: Targetes de paraules</h3>
+        <p>10 rondes amb les paraules del dictat per triar quina és la ben escrita.</p>
+      </div>
+    </div>
+
+    <div class="menu-card" onclick="startDictationGame()">
+      <div class="icon">✏️</div>
+      <div class="info">
+        <h3>Joc 2: Completa el dictat</h3>
+        <p>El text complet: escriu amb el teclat la lletra o dígraf difícil a cada casella!</p>
+      </div>
+    </div>
+  </div>
+
+  <button class="btn btn-stats" onclick="showStats()">📊 Veure Estadístiques</button>
+
+  <div id="folder-status" class="folder-status-box" onclick="promptLinkFolder()">
+    <span>📁</span>
+    <span id="folder-status-text">Detectant carpeta de guardat...</span>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!--  JOC 1: TARGETES (10 rondes)               -->
+<!-- ═══════════════════════════════════════════ -->
+<div id="game1-screen" class="screen">
+  <h1>Joc 1: Targetes</h1>
+  
+  <div class="source-file-badge" id="game1-source-badge">
+    <span>📄</span>
+    <span id="game1-source-text">Sincronitzant paraules_dictado_31_10_2026.csv...</span>
+  </div>
+
+  <div class="progress-bar-wrap">
+    <div class="progress-bar-fill" id="progress-fill"></div>
+  </div>
+  <div class="round-label" id="round-label"></div>
+  <div class="question-text">Quina és la paraula ben escrita? 🤔</div>
+  <div class="cards" id="cards-container"></div>
+  <button class="btn btn-next" id="btn-next" onclick="nextRoundGame1()">Següent →</button>
+  <button class="btn btn-secondary" onclick="showScreen('menu-screen')" style="margin-top:14px; font-size:0.95rem; padding:8px 20px;">← Menú principal</button>
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!--  JOC 2: DICTAT COMPLET (SENSE PISTES)      -->
+<!-- ═══════════════════════════════════════════ -->
+<div id="game2-screen" class="screen">
+  <h1>✏️ Completa el dictat</h1>
+  <p class="subtitle">Escriu amb el teclat la lletra o dígraf que falta a cada casella!</p>
+
+  <div class="source-file-badge" id="source-file-badge">
+    <span>📄</span>
+    <span id="source-file-text">Sincronitzant paraules de paraules_blank_dictado_31_10_2026.csv...</span>
+  </div>
+
+  <div class="dictat-container" id="dictat-text-container"></div>
+
+  <div class="game2-summary-box" id="game2-summary-box">
+    <h3 id="game2-summary-title">Molt bé!</h3>
+    <p id="game2-summary-desc"></p>
+  </div>
+
+  <div class="btn-row" id="game2-action-buttons">
+    <button class="btn btn-success" id="btn-validate-dictat" onclick="validateDictation()">✅ Comprovar solucions</button>
+    <button class="btn btn-secondary" onclick="resetDictationBoxes()">🔄 Netejar caselles</button>
+    <button class="btn btn-secondary" onclick="showScreen('menu-screen')">🏠 Menú principal</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!--  PANTALLA DE RESULTATS COMUNS              -->
+<!-- ═══════════════════════════════════════════ -->
+<div id="result-screen" class="screen">
+  <div class="big-emoji" id="result-emoji"></div>
+  <h1 id="result-title"></h1>
+  <p class="subtitle" id="result-subtitle"></p>
+
+  <div class="score-circle">
+    <span id="score-num"></span>
+    <span id="score-total-label">de 10</span>
+  </div>
+
+  <div id="save-toast">💾 Estadístiques guardades!</div>
+
+  <div class="wrong-list" id="wrong-list-wrap" style="display:none">
+    <h3 id="wrong-list-title">Paraules a repassar:</h3>
+    <ul id="wrong-list"></ul>
+  </div>
+
+  <div class="btn-row">
+    <button class="btn btn-primary" id="btn-repeat-game">🔄 Jugar de nou</button>
+    <button class="btn btn-secondary" onclick="showScreen('menu-screen')">🏠 Menú principal</button>
+    <button class="btn btn-accent" onclick="showStats()">📊 Estadístiques</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!--  PANTALLA D'ESTADÍSTIQUES                   -->
+<!-- ═══════════════════════════════════════════ -->
+<div id="stats-screen" class="screen">
+  <h2>📊 Estadístiques i Notes</h2>
+  <div class="stats-table-wrap" id="stats-content"></div>
+
+  <div class="btn-row">
+    <button class="btn btn-accent" onclick="exportStatsJSON()">💾 Descarregar còpia JSON</button>
+    <button class="btn btn-secondary" onclick="clearStats()" style="background:#e53935;">🗑️ Esborrar historial</button>
+    <button class="btn btn-secondary" onclick="showScreen('menu-screen')">🏠 Menú principal</button>
+  </div>
+</div>
+
+<div class="confetti-wrap" id="confetti-wrap"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+//  1. DADES DEL DICTAT (ESTRICTAMENT LES PARAULES DEL TEXT)
+// ═══════════════════════════════════════════════════════════════
+let DICTATION_TEXT = "L'altre dia vam anar d'excursió a la muntanya. Les cases eren fetes de pedra i les teulades de pissarra. L'Andreu, un boletaire, ensenyava les fulles vermelles dels castanyers. Al bosc també hi havia moltes pinyes i bolets. Ho vam passar molt bé. Ja estem impacients per fer la propera excursió.";
+
+// Mapeig per al Joc 2: només les paraules que apareixen al text
+const BLANK_WORDS_MAP = {
+  "excursió":      "excur[s]ió",
+  "muntanya":      "munta[ny]a",
+  "pedra":         "p[e]dra",
+  "teulades":      "teulad[e]s",
+  "pissarra":      "pi[ss]arra",
+  "boletaire":     "bol[e]taire",
+  "ensenyava":     "ense[ny]ava",
+  "fulles":        "fu[ll]es",
+  "vermelles":     "verme[ll]es",
+  "castanyers":    "casta[ny]ers",
+  "bosc":          "bos[c]",
+  "havia":         "ha[v]ia",
+  "pinyes":        "pi[ny]es",
+  "bolets":        "bole[t]s",
+  "passar":        "pa[ss]ar",
+  "impacients":    "impacien[ts]",
+  "propera":       "prope[r]a"
+};
+
+// Llista per al Joc 1: només les 17 paraules presents a dictado_31_10_2026.txt
+let ALL_WORDS = [
+  { correct: "excursió",       options: ["excurció",      "excursio",       "excurssió"]      },
+  { correct: "muntanya",       options: ["montanya",      "muntania",       "muntañya"]       },
+  { correct: "pedra",          options: ["peddra",        "piedra",         "pedrra"]         },
+  { correct: "teulades",       options: ["teuladas",      "taulades",       "teullades"]      },
+  { correct: "pissarra",       options: ["pisarra",       "pissara",        "pizarra"]        },
+  { correct: "boletaire",      options: ["boletayre",     "bolletaire",     "bolataire"]      },
+  { correct: "ensenyava",      options: ["enseñava",      "enseniava",      "ensenyaba"]      },
+  { correct: "fulles",         options: ["fules",         "fulless",        "fuyes"]          },
+  { correct: "vermelles",      options: ["vermeles",      "vermells",       "vermelas"]       },
+  { correct: "castanyers",     options: ["castanyés",     "castañers",      "castaners"]      },
+  { correct: "bosc",           options: ["bosq",          "bossc",          "bosk"]           },
+  { correct: "havia",          options: ["habia",         "avia",           "havie"]          },
+  { correct: "pinyes",         options: ["piñes",         "pinies",         "pines"]          },
+  { correct: "bolets",         options: ["bollets",       "boleds",         "bolèts"]         },
+  { correct: "passar",         options: ["pasar",         "passsar",        "passarr"]        },
+  { correct: "impacients",     options: ["impaciens",     "impacents",      "impacientz"]     },
+  { correct: "propera",        options: ["properra",      "proppera",       "propara"]        }
+];
+
+// ═══════════════════════════════════════════════════════════════
+//  CÀRREGA DINÀMICA DE FITXERS LOCALS EN TEMPS REAL
+// ═══════════════════════════════════════════════════════════════
+async function loadDynamicFiles() {
+  await loadGame1WordsFromCSV();
+  await loadBlankWordsFromCSV();
+  await loadDictationTextFile();
+}
+
+// Llegeix dinàmicament paraules_dictado_31_10_2026.csv per al Joc 1
+async function loadGame1WordsFromCSV() {
+  let csvText = null;
+  const badgeText = document.getElementById('game1-source-text');
+
+  if (projectDirHandle) {
+    try {
+      const fileHandle = await projectDirHandle.getFileHandle('paraules_dictado_31_10_2026.csv');
+      const file = await fileHandle.getFile();
+      csvText = await file.text();
+    } catch (e) {
+      console.warn('No s\'ha pogut llegir paraules_dictado_31_10_2026.csv via handle:', e);
+    }
+  }
+
+  if (!csvText) {
+    try {
+      const resp = await fetch('paraules_dictado_31_10_2026.csv', { cache: 'no-cache' });
+      if (resp.ok) csvText = await resp.text();
+    } catch (e) {
+      // file://
+    }
+  }
+
+  if (csvText) {
+    const loaded = [];
+    const lines = csvText.split(/\r?\n/);
+    lines.forEach(line => {
+      line = line.trim();
+      if (!line || line.startsWith('paraula')) return;
+      const parts = line.split(',').map(p => p.trim());
+      if (parts.length >= 2) {
+        const correct = parts[0];
+        const options = parts.slice(1).filter(p => p.length > 0);
+        if (correct && options.length > 0) {
+          loaded.push({ correct, options });
+        }
+      }
+    });
+
+    if (loaded.length > 0) {
+      ALL_WORDS = loaded;
+      if (badgeText) {
+        badgeText.textContent = `Sincronitzat amb paraules_dictado_31_10_2026.csv (${loaded.length} paraules actives)`;
+      }
+    }
+  } else if (badgeText) {
+    badgeText.textContent = `Utilitzant ${ALL_WORDS.length} paraules del dictat (vincula carpeta per sincronització en viu)`;
+  }
+}
+
+// Llegeix dinàmicament paraules_blank_dictado_31_10_2026.csv per al Joc 2
+async function loadBlankWordsFromCSV() {
+  let csvText = null;
+  const badgeText = document.getElementById('source-file-text');
+
+  if (projectDirHandle) {
+    try {
+      const fileHandle = await projectDirHandle.getFileHandle('paraules_blank_dictado_31_10_2026.csv');
+      const file = await fileHandle.getFile();
+      csvText = await file.text();
+    } catch (e) {
+      console.warn('No s\'ha pogut llegir paraules_blank_dictado_31_10_2026.csv via handle:', e);
+    }
+  }
+
+  if (!csvText) {
+    try {
+      const resp = await fetch('paraules_blank_dictado_31_10_2026.csv', { cache: 'no-cache' });
+      if (resp.ok) csvText = await resp.text();
+    } catch (e) {
+      // file://
+    }
+  }
+
+  if (csvText) {
+    let count = 0;
+    const lines = csvText.split(/\r?\n/);
+    lines.forEach(line => {
+      line = line.trim();
+      if (!line) return;
+      const commaIdx = line.indexOf(',');
+      if (commaIdx !== -1) {
+        const word = line.substring(0, commaIdx).trim().toLowerCase();
+        const template = line.substring(commaIdx + 1).trim();
+        if (word && template && word !== 'paraula' && word !== 'paraula_correcta') {
+          BLANK_WORDS_MAP[word] = template;
+          count++;
+        }
+      }
+    });
+    if (badgeText) {
+      badgeText.textContent = `Sincronitzat amb paraules_blank_dictado_31_10_2026.csv (${count} paraules actives)`;
+    }
+  } else if (badgeText) {
+    badgeText.textContent = `Utilitzant ${Object.keys(BLANK_WORDS_MAP).length} paraules actives (vincula carpeta per sincronització en viu)`;
+  }
+}
+
+async function loadDictationTextFile() {
+  if (projectDirHandle) {
+    try {
+      const fileHandle = await projectDirHandle.getFileHandle('dictado_31_10_2026.txt');
+      const file = await fileHandle.getFile();
+      const txt = await file.text();
+      if (txt && txt.trim()) {
+        DICTATION_TEXT = txt.trim();
+      }
+    } catch (e) {
+      console.warn('No s\'ha pogut llegir dictado_31_10_2026.txt:', e);
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  2. CONFIGURACIÓ GLOBAL
+// ═══════════════════════════════════════════════════════════════
+const STATS_KEY  = 'dictado_stats_31_10_2026';
+const STATS_FILE = 'estadisticas_dictado_31_10_2026.json';
+const DB_NAME    = 'dictados_berta_db';
+const STORE_NAME = 'handles';
+
+let projectDirHandle = null;
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  3. JOC 1: TARGETES (LLEGINT FITXER EN TEMPS REAL)
+// ═══════════════════════════════════════════════════════════════
+let game1RoundsTotal = 10;
+let game1Round = 0;
+let game1Words = [];
+let game1Score = 0;
+let game1WrongWords = [];
+let game1Answered = false;
+
+async function startWordCardGame() {
+  // Llegeix sempre el fitxer paraules_dictado_31_10_2026.csv actualitzat abans de començar
+  await loadGame1WordsFromCSV();
+
+  game1RoundsTotal = Math.min(10, ALL_WORDS.length);
+  game1Words = shuffle(ALL_WORDS).slice(0, game1RoundsTotal);
+  game1Round = 0;
+  game1Score = 0;
+  game1WrongWords = [];
+  showScreen('game1-screen');
+  renderGame1Round();
+}
+
+function renderGame1Round() {
+  game1Answered = false;
+  const word = game1Words[game1Round];
+  const choices = shuffle([word.correct, ...shuffle(word.options).slice(0, 2)]);
+
+  const pct = (game1Round / game1RoundsTotal) * 100;
+  document.getElementById('progress-fill').style.width = pct + '%';
+  document.getElementById('round-label').textContent = `Paraula ${game1Round + 1} de ${game1RoundsTotal}`;
+
+  const container = document.getElementById('cards-container');
+  container.innerHTML = '';
+  choices.forEach(choice => {
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.textContent = choice;
+    card.onclick = () => handleGame1Answer(card, choice, word.correct);
+    container.appendChild(card);
+  });
+
+  const btn = document.getElementById('btn-next');
+  btn.classList.remove('enabled');
+  btn.textContent = game1Round < game1RoundsTotal - 1 ? 'Següent →' : 'Veure resultats 🏆';
+}
+
+function handleGame1Answer(cardEl, chosen, correct) {
+  if (game1Answered) return;
+  game1Answered = true;
+
+  document.querySelectorAll('.card').forEach(c => {
+    c.classList.add('disabled');
+    if (c.textContent === correct) c.classList.add('correct');
+  });
+
+  if (chosen === correct) {
+    game1Score++;
+  } else {
+    cardEl.classList.add('wrong');
+    game1WrongWords.push(correct);
+  }
+
+  document.getElementById('btn-next').classList.add('enabled');
+}
+
+function nextRoundGame1() {
+  game1Round++;
+  if (game1Round >= game1RoundsTotal) {
+    finishGame1();
+  } else {
+    renderGame1Round();
+  }
+}
+
+async function finishGame1() {
+  document.getElementById('progress-fill').style.width = '100%';
+
+  const stats = saveStatEntry({
+    joc_tipus: 'Targetes (Joc 1)',
+    encerts: game1Score,
+    total: game1RoundsTotal,
+    paraules_fallades: [...game1WrongWords]
+  });
+
+  await writeStatsToFile(stats);
+
+  const pct = game1Score / game1RoundsTotal;
+  let emoji, title;
+  if      (pct >= 0.9) { emoji = '🏆'; title = 'Excel·lent!'; }
+  else if (pct >= 0.7) { emoji = '😄'; title = 'Molt bé!'; }
+  else if (pct >= 0.5) { emoji = '😊'; title = 'Bé, però practica!'; }
+  else                  { emoji = '💪'; title = 'Cal practicar més!'; }
+
+  document.getElementById('result-emoji').textContent = emoji;
+  document.getElementById('result-title').textContent = title;
+  document.getElementById('result-subtitle').textContent = 'Resultats de les targetes de paraules';
+  document.getElementById('score-num').textContent = game1Score;
+  document.getElementById('score-total-label').textContent = `de ${game1RoundsTotal}`;
+
+  const wrongWrap = document.getElementById('wrong-list-wrap');
+  const wrongList = document.getElementById('wrong-list');
+  wrongList.innerHTML = '';
+  if (game1WrongWords.length > 0) {
+    wrongWrap.style.display = 'block';
+    game1WrongWords.forEach(w => {
+      const li = document.createElement('li');
+      li.textContent = w;
+      wrongList.appendChild(li);
+    });
+  } else {
+    wrongWrap.style.display = 'none';
+  }
+
+  document.getElementById('btn-repeat-game').onclick = startWordCardGame;
+  showScreen('result-screen');
+  if (pct >= 0.7) launchConfetti();
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  4. JOC 2: COMPLETA EL DICTAT (TECLAT SENSE PISTES)
+// ═══════════════════════════════════════════════════════════════
+let dictationInputElements = [];
+
+async function startDictationGame() {
+  // Llegeix sempre la versió més recent del fitxer CSV abans de generar el text
+  await loadDynamicFiles();
+
+  renderDictationWithBlanks();
+  document.getElementById('game2-summary-box').style.display = 'none';
+  showScreen('game2-screen');
+
+  setTimeout(() => {
+    const firstInput = document.querySelector('.blank-input');
+    if (firstInput) firstInput.focus();
+  }, 200);
+}
+
+function renderDictationWithBlanks() {
+  const container = document.getElementById('dictat-text-container');
+  container.innerHTML = '';
+  dictationInputElements = [];
+
+  const tokens = DICTATION_TEXT.split(' ');
+
+  tokens.forEach(rawToken => {
+    let prefix = '';
+    let coreWord = rawToken;
+    let suffix = '';
+
+    // Separa apostrofs inicials (ex: "d'excursió")
+    const apoIdx = rawToken.indexOf("'");
+    if (apoIdx !== -1 && apoIdx < rawToken.length - 1) {
+      prefix = rawToken.substring(0, apoIdx + 1);
+      coreWord = rawToken.substring(apoIdx + 1);
+    }
+
+    // Separa puntuació final (ex: "muntanya.")
+    const punctMatch = coreWord.match(/([.,;:!?]+)$/);
+    if (punctMatch) {
+      suffix = punctMatch[1];
+      coreWord = coreWord.substring(0, coreWord.length - suffix.length);
+    }
+
+    const cleanWordKey = coreWord.toLowerCase();
+    const tokenSpan = document.createElement('span');
+    tokenSpan.className = 'word-token';
+
+    if (prefix) {
+      const pSpan = document.createElement('span');
+      pSpan.className = 'char-static';
+      pSpan.textContent = prefix;
+      tokenSpan.appendChild(pSpan);
+    }
+
+    // Comprova si la paraula és a la taula dinàmica de buidats
+    if (BLANK_WORDS_MAP[cleanWordKey]) {
+      const template = BLANK_WORDS_MAP[cleanWordKey]; // ex: "pi[ss]arra"
+      const bracketMatch = template.match(/^(.*?)\[(.*?)\](.*)$/);
+
+      if (bracketMatch) {
+        const before = bracketMatch[1];
+        const inside = bracketMatch[2]; // el dígraf o lletra oculta
+        const after  = bracketMatch[3];
+
+        if (before) {
+          const bSpan = document.createElement('span');
+          bSpan.className = 'char-static';
+          bSpan.textContent = before;
+          tokenSpan.appendChild(bSpan);
+        }
+
+        const inp = document.createElement('input');
+        inp.type = 'text';
+        inp.className = 'blank-input';
+        inp.dataset.answer = inside.toLowerCase();
+        inp.dataset.word = coreWord;
+        inp.maxLength = Math.max(inside.length + 1, 3);
+        inp.style.width = (inside.length > 1 ? 58 : 44) + 'px';
+        inp.autocomplete = 'off';
+        inp.spellcheck = false;
+
+        inp.addEventListener('input', () => handleBlankInput(inp));
+        inp.addEventListener('keydown', (e) => handleBlankKeydown(e, inp));
+
+        tokenSpan.appendChild(inp);
+        dictationInputElements.push(inp);
+
+        if (after) {
+          const aSpan = document.createElement('span');
+          aSpan.className = 'char-static';
+          aSpan.textContent = after;
+          tokenSpan.appendChild(aSpan);
+        }
+      } else {
+        const wSpan = document.createElement('span');
+        wSpan.className = 'char-static';
+        wSpan.textContent = coreWord;
+        tokenSpan.appendChild(wSpan);
+      }
+    } else {
+      const wSpan = document.createElement('span');
+      wSpan.className = 'char-static';
+      wSpan.textContent = coreWord;
+      tokenSpan.appendChild(wSpan);
+    }
+
+    if (suffix) {
+      const sSpan = document.createElement('span');
+      sSpan.className = 'char-static';
+      sSpan.textContent = suffix;
+      tokenSpan.appendChild(sSpan);
+    }
+
+    container.appendChild(tokenSpan);
+    container.appendChild(document.createTextNode(' '));
+  });
+}
+
+function handleBlankInput(inputEl) {
+  const expectedLen = inputEl.dataset.answer.length;
+  if (inputEl.value.trim().length >= expectedLen) {
+    const idx = dictationInputElements.indexOf(inputEl);
+    if (idx !== -1 && idx < dictationInputElements.length - 1) {
+      dictationInputElements[idx + 1].focus();
+    }
+  }
+}
+
+function handleBlankKeydown(e, inputEl) {
+  const idx = dictationInputElements.indexOf(inputEl);
+  if (e.key === 'Backspace' && inputEl.value === '') {
+    if (idx > 0) dictationInputElements[idx - 1].focus();
+  } else if (e.key === 'ArrowRight' || e.key === 'Enter') {
+    if (idx < dictationInputElements.length - 1) dictationInputElements[idx + 1].focus();
+  } else if (e.key === 'ArrowLeft') {
+    if (idx > 0) dictationInputElements[idx - 1].focus();
+  }
+}
+
+function resetDictationBoxes() {
+  dictationInputElements.forEach(inp => {
+    inp.value = '';
+    inp.className = 'blank-input';
+    inp.disabled = false;
+  });
+  document.getElementById('game2-summary-box').style.display = 'none';
+  if (dictationInputElements.length > 0) {
+    dictationInputElements[0].focus();
+  }
+}
+
+async function validateDictation() {
+  let correctCount = 0;
+  const totalCount = dictationInputElements.length;
+  const failedWordsSet = new Set();
+
+  dictationInputElements.forEach(inp => {
+    const userVal = inp.value.trim().toLowerCase();
+    const answer = inp.dataset.answer.toLowerCase();
+
+    if (userVal === answer) {
+      inp.classList.remove('wrong');
+      inp.classList.add('correct');
+      correctCount++;
+    } else {
+      inp.classList.remove('correct');
+      inp.classList.add('wrong');
+      failedWordsSet.add(inp.dataset.word);
+    }
+  });
+
+  const failedWords = Array.from(failedWordsSet);
+  const pct = correctCount / totalCount;
+
+  const stats = saveStatEntry({
+    joc_tipus: 'Completa el dictat (Joc 2)',
+    encerts: correctCount,
+    total: totalCount,
+    paraules_fallades: failedWords
+  });
+
+  await writeStatsToFile(stats);
+
+  const summaryBox = document.getElementById('game2-summary-box');
+  const summaryTitle = document.getElementById('game2-summary-title');
+  const summaryDesc = document.getElementById('game2-summary-desc');
+  summaryBox.style.display = 'block';
+
+  if (pct >= 0.9) {
+    summaryTitle.textContent = '🌟 Excel·lent feina!';
+    summaryBox.style.borderColor = '#4caf50';
+    summaryBox.style.background = '#e8f5e9';
+    launchConfetti();
+  } else if (pct >= 0.7) {
+    summaryTitle.textContent = '👏 Molt bé!';
+    summaryBox.style.borderColor = '#6ec6f5';
+    summaryBox.style.background = '#e1f5fe';
+    launchConfetti();
+  } else {
+    summaryTitle.textContent = '💪 Bon intent! Repassa les caselles vermelles';
+    summaryBox.style.borderColor = '#ffb74d';
+    summaryBox.style.background = '#fff8e1';
+  }
+
+  summaryDesc.innerHTML = `Has encertat <strong>${correctCount}</strong> de <strong>${totalCount}</strong> paraules clau (${Math.round(pct * 100)}%).<br>` +
+    (failedWords.length === 0
+      ? '🎉 No has comès cap falta ortogràfica!'
+      : `Paraules amb algun error: <em>${failedWords.join(', ')}</em>`);
+
+  summaryBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  5. SISTEMA DE PERSISTÈNCIA
+// ═══════════════════════════════════════════════════════════════
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, 1);
+    req.onupgradeneeded = () => req.result.createObjectStore(STORE_NAME);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function getStoredHandle() {
+  try {
+    const db = await openDB();
+    return new Promise(resolve => {
+      const tx = db.transaction(STORE_NAME, 'readonly');
+      const req = tx.objectStore(STORE_NAME).get('dir');
+      req.onsuccess = () => resolve(req.result || null);
+      req.onerror = () => resolve(null);
+    });
+  } catch { return null; }
+}
+
+async function storeHandle(handle) {
+  try {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, 'readwrite');
+      tx.objectStore(STORE_NAME).put(handle, 'dir');
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  } catch (e) { console.warn('Error guardant handle:', e); }
+}
+
+async function checkSavedFolder() {
+  const statusEl = document.getElementById('folder-status');
+  const textEl   = document.getElementById('folder-status-text');
+
+  if (!('showDirectoryPicker' in window)) {
+    statusEl.style.display = 'none';
+    return;
+  }
+
+  const saved = await getStoredHandle();
+  if (saved) {
+    projectDirHandle = saved;
+    statusEl.classList.add('linked');
+    textEl.textContent = `Carpeta vinculada: ${saved.name} ✓ (desat i lectura en viu activa)`;
+  } else {
+    statusEl.classList.remove('linked');
+    textEl.textContent = 'Prem aquí per triar la carpeta del projecte i activar la sincronització en viu';
+  }
+}
+
+async function promptLinkFolder() {
+  if (!('showDirectoryPicker' in window)) {
+    alert('Aquest navegador no admet selecció de carpeta directa. Les dades es desaran al navegador.');
+    return;
+  }
+  try {
+    const handle = await window.showDirectoryPicker({ mode: 'readwrite' });
+    projectDirHandle = handle;
+    await storeHandle(handle);
+    const statusEl = document.getElementById('folder-status');
+    const textEl   = document.getElementById('folder-status-text');
+    statusEl.classList.add('linked');
+    textEl.textContent = `Carpeta vinculada: ${handle.name} ✓ (desat i lectura en viu activa)`;
+    await loadDynamicFiles();
+  } catch (err) {
+    if (err.name !== 'AbortError') console.error(err);
+  }
+}
+
+function loadStats() {
+  try { return JSON.parse(localStorage.getItem(STATS_KEY) || '[]'); }
+  catch { return []; }
+}
+
+function saveStatEntry(entry) {
+  const stats = loadStats();
+  const gameNum = stats.length + 1;
+  const newEntry = {
+    joc: gameNum,
+    tipus: entry.joc_tipus || 'Targetes',
+    data: new Date().toLocaleString('ca-ES'),
+    encerts: entry.encerts,
+    total: entry.total,
+    paraules_fallades: entry.paraules_fallades || []
+  };
+  stats.push(newEntry);
+  localStorage.setItem(STATS_KEY, JSON.stringify(stats));
+  return stats;
+}
+
+async function writeStatsToFile(stats) {
+  let savedToFile = false;
+  if (projectDirHandle) {
+    try {
+      const fileHandle = await projectDirHandle.getFileHandle(STATS_FILE, { create: true });
+      const writable = await fileHandle.createWritable();
+      await writable.write(JSON.stringify(stats, null, 2));
+      await writable.close();
+      savedToFile = true;
+    } catch (e) {
+      console.warn('No s\'ha pogut escriure al fitxer local:', e);
+    }
+  }
+
+  const toast = document.getElementById('save-toast');
+  toast.textContent = savedToFile
+    ? `💾 Guardat automàticament a ${STATS_FILE}!`
+    : '💾 Estadístiques guardades al navegador!';
+  toast.style.display = 'block';
+  setTimeout(() => { toast.style.display = 'none'; }, 3500);
+}
+
+function exportStatsJSON() {
+  const stats = loadStats();
+  if (stats.length === 0) { alert('Encara no hi ha partides guardades.'); return; }
+  const blob = new Blob([JSON.stringify(stats, null, 2)], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = STATS_FILE;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function clearStats() {
+  if (!confirm('Segur que vols esborrar tot l\'historial de partides?')) return;
+  localStorage.removeItem(STATS_KEY);
+  showStats();
+}
+
+function showStats() {
+  const stats   = loadStats();
+  const content = document.getElementById('stats-content');
+
+  if (stats.length === 0) {
+    content.innerHTML = '<p class="no-stats">Encara no hi ha partides jugades.</p>';
+  } else {
+    const rows = stats.slice().reverse().map(s => {
+      const pct        = s.encerts / s.total;
+      const badgeClass = pct >= 0.7 ? '' : (pct >= 0.5 ? 'mid' : 'bad');
+      const fallades   = s.paraules_fallades.length > 0
+        ? s.paraules_fallades.join(', ')
+        : 'Cap falta 👏';
+      const gameType = s.tipus || 'Targetes';
+      return `<tr>
+        <td>
+          <span class="badge-game">${gameType}</span><br>
+          <strong>#${s.joc}</strong> <small style="color:#888;">${s.data}</small>
+        </td>
+        <td><span class="badge ${badgeClass}">${s.encerts}/${s.total}</span></td>
+        <td style="color:#c62828; font-size:0.9rem;">${fallades}</td>
+      </tr>`;
+    }).join('');
+
+    content.innerHTML = `
+      <table>
+        <thead><tr><th>Partida</th><th>Encerts</th><th>Paraules fallades</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+  }
+  showScreen('stats-screen');
+}
+
+// ── UTILS ──
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function launchConfetti() {
+  const wrap = document.getElementById('confetti-wrap');
+  wrap.innerHTML = '';
+  const colors = ['#ff7f50','#6ec6f5','#4caf50','#ffb347','#ce93d8','#f06292'];
+  for (let i = 0; i < 90; i++) {
+    const el = document.createElement('div');
+    el.className = 'confetto';
+    el.style.cssText = `
+      left: ${Math.random() * 100}%;
+      background: ${colors[Math.floor(Math.random() * colors.length)]};
+      width: ${6 + Math.random() * 10}px;
+      height: ${6 + Math.random() * 10}px;
+      border-radius: ${Math.random() > 0.5 ? '50%' : '2px'};
+      animation-duration: ${1.5 + Math.random() * 2.5}s;
+      animation-delay: ${Math.random() * 0.8}s;
+    `;
+    wrap.appendChild(el);
+  }
+  setTimeout(() => { wrap.innerHTML = ''; }, 5000);
+}
+
+window.addEventListener('DOMContentLoaded', async () => {
+  await checkSavedFolder();
+  await loadDynamicFiles();
+});
+</script>
+</body>
+</html>
